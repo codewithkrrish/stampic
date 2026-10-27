@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stampic — Watermark Photos in Your Browser</title>
+<meta name="description" content="Stampic watermarks your photos in your browser: text or logo, 9-point positioning or tiled repeat, opacity, size and rotation, batch export as PNG, JPEG or ZIP. No uploads, ever.">
+<link rel="canonical" href="https://stampic-app.vercel.app">
+<meta property="og:title" content="Stampic — Watermark Photos in Your Browser">
+<meta property="og:description" content="Text or logo watermarks, 9-point positioning or tiled repeat, batch export. Your photos never leave your browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://stampic-app.vercel.app">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Stampic — Watermark Photos in Your Browser">
+<meta name="twitter:description" content="Text or logo watermarks, 9-point positioning or tiled repeat, batch export. Your photos never leave your browser.">
+<meta name="theme-color" content="#0B0B0F">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">S</span><span class="brand-name">Stampic</span></div>
+  <p class="tagline">Watermark photos in your browser. No uploads, no accounts.</p>
+</header>
+<main class="layout">
+  <section class="panel" aria-label="Photos">
+    <h2>Photos</h2>
+    <div class="dropzone" id="dropZone" tabindex="0">
+      <p><strong>Drop photos here</strong> or use the picker below.</p>
+      <p class="muted">You can also paste an image from your clipboard (Ctrl+V / Cmd+V).</p>
+      <label class="btn" for="fileInput">Choose photos</label>
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+    </div>
+    <div class="row">
+      <button type="button" class="btn secondary" id="sampleBtn">Load sample photos</button>
+      <button type="button" class="btn secondary" id="clearBtn">Clear all</button>
+    </div>
+    <p class="count" id="photoCountText">0/20 photos</p>
+    <div class="photo-list" id="photoList"></div>
+    <p class="muted" id="emptyNote">No photos yet. Load the samples to try every control with zero uploads.</p>
+  </section>
+
+  <section class="panel preview-panel" aria-label="Preview">
+    <h2>Preview</h2>
+    <div class="view-toggle" role="group" aria-label="Before or after">
+      <button type="button" class="btn secondary" id="beforeBtn">Before</button>
+      <button type="button" class="btn secondary" id="afterBtn">After</button>
+    </div>
+    <p class="selected" id="selectedName">No photo selected</p>
+    <canvas id="previewCanvas" width="640" height="360"></canvas>
+    <p class="muted" id="exportSizeText">No photo selected</p>
+    <p class="summary" id="settingsSummary"></p>
+    <p class="status" id="statusText">Add photos to start watermarking.</p>
+  </section>
+
+  <section class="panel" aria-label="Watermark settings">
+    <h2>Watermark</h2>
+    <label class="field">Mode
+      <select id="modeSelect">
+        <option value="text" selected>Text</option>
+        <option value="logo">Logo image</option>
+      </select>
+    </label>
+    <div id="textControls">
+      <label class="field">Watermark text
+        <input type="text" id="wmText" value="krrish" maxlength="60">
+      </label>
+      <label class="field">Font family
+        <select id="fontFamily">
+          <option value="Arial, sans-serif" selected>Arial</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="Courier New, monospace">Courier New</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+          <option value="Impact, sans-serif">Impact</option>
+        </select>
+      </label>
+      <label class="field">Text colour
+        <input type="color" id="fontColor" value="#ffffff">
+      </label>
+      <label class="check"><input type="checkbox" id="boldCheck"> Bold text</label>
+    </div>
+    <div id="logoControls" hidden>
+      <label class="btn secondary" for="logoInput">Upload logo image</label>
+      <input type="file" id="logoInput" accept="image/*" hidden>
+      <p class="muted" id="logoName">No logo loaded</p>
+      <button type="button" class="btn secondary" id="clearLogoBtn">Remove logo</button>
+      <p class="muted">The logo is drawn at the same size, opacity and rotation as a text watermark, keeping its own aspect ratio.</p>
+    </div>
+
+    <label class="field">Placement
+      <select id="placementSelect">
+        <option value="single" selected>Single (9-point position)</option>
+        <option value="tiled">Tiled repeat</option>
+      </select>
+    </label>
+
+    <div id="positionRow">
+      <p class="label">Position</p>
+      <div class="pos-grid" role="group" aria-label="Watermark position">
+        <button type="button" class="posBtn" data-pos="top-left">Top left</button>
+        <button type="button" class="posBtn" data-pos="top-center">Top center</button>
+        <button type="button" class="posBtn" data-pos="top-right">Top right</button>
+        <button type="button" class="posBtn" data-pos="middle-left">Middle left</button>
+        <button type="button" class="posBtn" data-pos="middle-center">Middle center</button>
+        <button type="button" class="posBtn" data-pos="middle-right">Middle right</button>
+        <button type="button" class="posBtn" data-pos="bottom-left">Bottom left</button>
+        <button type="button" class="posBtn" data-pos="bottom-center">Bottom center</button>
+        <button type="button" class="posBtn active" data-pos="bottom-right">Bottom right</button>
+      </div>
+    </div>
+
+    <label class="field">Opacity <span id="opacityValue">50%</span>
+      <input type="range" id="opacityRange" min="0" max="100" value="50">
+    </label>
+    <label class="field">Size (percent of photo width) <span id="sizeValue">20%</span>
+      <input type="range" id="sizeRange" min="5" max="100" value="20">
+    </label>
+    <label class="field">Rotation <span id="rotationValue">-30°</span>
+      <input type="range" id="rotationRange" min="-180" max="180" value="-30">
+    </label>
+    <div id="marginRow">
+      <label class="field">Margin from edge <span id="marginValue">24 px</span>
+        <input type="range" id="marginRange" min="0" max="200" value="24">
+      </label>
+    </div>
+    <div id="tileRow" hidden>
+      <label class="field">Tile spacing <span id="tileSpacingValue">60 px</span>
+        <input type="range" id="tileSpacingRange" min="0" max="500" value="60">
+      </label>
+    </div>
+
+    <h2>Export</h2>
+    <label class="field">Format
+      <select id="formatSelect">
+        <option value="png" selected>PNG</option>
+        <option value="jpeg">JPEG</option>
+      </select>
+    </label>
+    <div class="row">
+      <button type="button" class="btn" id="exportBtn" disabled>Download this photo</button>
+      <button type="button" class="btn secondary" id="exportAllBtn" disabled>Download all as ZIP</button>
+    </div>
+    <p class="muted" id="zipStatus"></p>
+    <p class="muted">Batch export applies the same watermark settings to every loaded photo. If the ZIP library cannot load (offline or blocked CDN), photos are downloaded individually instead.</p>
+  </section>
+</main>
+<footer class="footer">
+  <p>Built by <a href="https://github.com/codewithkrrish/stampic">krrish</a> · <a href="https://www.instagram.com/krrishx.ai">Instagram</a></p>
+  <p>Your photos are processed locally in your browser and never uploaded.</p>
+</footer>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
